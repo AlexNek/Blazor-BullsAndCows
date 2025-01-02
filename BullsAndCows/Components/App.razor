@@ -1,0 +1,32 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
+    <link rel="stylesheet" href="@Assets["app.css"]" />
+    <link rel="stylesheet" href="@Assets["BullsAndCows.styles.css"]" />
+    <ImportMap />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <HeadOutlet @rendermode="InteractiveWebAssembly" />
+</head>
+
+<body>
+    <Routes @rendermode="InteractiveWebAssembly" />
+    <script src="_framework/blazor.web.js"></script>
+    <script>
+        window.addKeydownListener = (dotNetObject) => {
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Backspace' || event.key === 'Enter' || /^[0-9]$/.test(event.key)) {
+                    dotNetObject.invokeMethodAsync('HandleKeydown', event.key);
+                }
+            });
+        };
+        window.localStorage = window.localStorage || {};
+    </script>
+
+</body>
+
+</html>

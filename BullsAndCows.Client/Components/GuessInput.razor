@@ -1,0 +1,88 @@
+<NumericKeypad OnInput="HandleKeypadInput" />
+@* <div class="guess-input">
+    <input
+    type="text"
+    @bind-value="CurrentGuess"
+    @bind-value:event="oninput"
+    placeholder="Enter 4 digits"
+    maxlength="4"
+    pattern="\d*"
+    disabled="@Disabled"
+    @onkeyup="HandleKeyUp"
+    />
+    <button
+    @onclick="SubmitGuess"
+    disabled="@(!IsValidGuess() || Disabled)"
+    >
+        Guess
+    </button>
+
+    @if (!string.IsNullOrEmpty(Error))
+    {
+        <p class="error">@Error</p>
+    }
+</div> *@
+
+@code {
+    // Input value bound to the input field
+    private string CurrentGuess { get; set; } = string.Empty;
+
+    // Error feedback property
+    private string Error { get; set; } = string.Empty;
+
+    // Disabled state
+    [Parameter]
+    public bool Disabled { get; set; } = false;
+
+    // Equivalent to Angular's EventEmitter, used for sending guesses back to parent
+    [Parameter]
+    public EventCallback<string> OnGuessCallback { get; set; }
+
+    // Method to handle guess submission
+    private async Task SubmitGuess()
+    {
+        if (!IsValidGuess())
+        {
+            Error = "Please enter 4 unique digits (first digit cannot be 0)";
+            return;
+        }
+
+        // Reset errors and emit the guess to the parent
+        Error = string.Empty;
+        await OnGuessCallback.InvokeAsync(CurrentGuess);
+
+        // Clear the input after submission
+        CurrentGuess = string.Empty;
+    }
+
+    // Validation logic matching the Angular version
+    private bool IsValidGuess()
+    {
+        // Ensure it's a four-digit number
+        if (string.IsNullOrEmpty(CurrentGuess) || !System.Text.RegularExpressions.Regex.IsMatch(CurrentGuess, @"^\d{4}$"))
+        {
+            return false;
+        }
+
+        // Ensure all digits are unique and the first digit is not '0'
+        var digits = new HashSet<char>(CurrentGuess);
+        return digits.Count == 4 && CurrentGuess[0] != '0';
+    }
+
+    // Handle Enter key (similar to `(keyup.enter)` in Angular)
+    private async Task HandleKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SubmitGuess();
+        }
+        //StateHasChanged();
+    }
+
+    private async Task HandleKeypadInput(string input)
+    {
+        CurrentGuess = input;
+        await SubmitGuess();
+    }
+
+}

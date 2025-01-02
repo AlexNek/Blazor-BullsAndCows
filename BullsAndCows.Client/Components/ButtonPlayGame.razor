@@ -1,0 +1,90 @@
+﻿
+@inject NavigationManager NavigationManager
+
+<style>
+    .start-button {
+        position: relative;
+        padding: 10px 20px;
+        font-size: 20px;
+        color: #fff;
+        background-color: #007bff; /* Bright blue */
+        border: 2px solid #0056b3; /* Darker blue for the border */
+        border-radius: 8px;
+        cursor: pointer;
+        outline: none;
+        transition: all 0.2s ease;
+        box-shadow: 
+                  0 4px 6px rgba(0,0,0,0.2),
+                  0 1px 3px rgba(0,0,0,0.15),
+                  inset 0 1px 0 rgba(255,255,255,0.5);
+        text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+    }
+
+    .start-button:hover {
+        background-color: #0056b3; /* Darker blue on hover */
+        box-shadow: 
+                  0 5px 8px rgba(0,0,0,0.25),
+                  0 2px 4px rgba(0,0,0,0.2),
+                  inset 0 1px 0 rgba(255,255,255,0.6);
+    }
+
+    .start-button:active {
+        transform: translateY(2px);
+        box-shadow: 
+                  0 2px 4px rgba(0,0,0,0.15),
+                  inset 0 1px 0 rgba(255,255,255,0.4);
+        background-color: #004085; /* Even darker blue when pressed */
+    }
+
+    .start-button[disabled] {
+        background-color: #b3c7e6; /* Lighter blue for disabled state */
+        color: #a1a1a1; /* Gray text for disabled state */
+        border-color: #9ab3d9; /* Lighter border for disabled state */
+        cursor: not-allowed; /* Change cursor to not-allowed when disabled */
+        animation: pulse 1s infinite; /* Apply pulsing animation */
+    }
+
+    @@keyframes pulse {
+        0% {
+            opacity: 0.7;
+            transform: scale(1);
+        }
+        50% {
+            opacity: 1; /* Full opacity at midpoint */
+            transform: scale(1.05); /* Slightly scale up */
+        }
+        100% {
+            opacity: 0.7;
+            transform: scale(1);
+        }
+    }
+</style>
+
+@* <button class="start-button" @onclick="PlayGame" disabled="isDisabled">Start Game</button> *@
+<button class="start-button" @onclick="PlayGame" @onclick:preventDefault disabled="@_isDisabled">@ButtonText</button>
+
+
+@code {
+
+    [Parameter]
+    public string ButtonText { get; set; } = "Start Game"; 
+
+    bool _isDisabled = true;
+
+    private void PlayGame()
+    {
+        NavigationManager.NavigateTo("/game-board");
+    }
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        if (firstRender)
+        {
+            _isDisabled = false;
+            StateHasChanged(); // Notify Blazor to re-render the component
+        }
+    }
+
+}

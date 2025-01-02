@@ -1,0 +1,142 @@
+@using BullsAndCows.Client.Models
+@using BullsAndCows.Client.Services
+@implements IDisposable
+
+@inject IStatisticsService StatisticsService
+@inject GameService GameService
+@inject NavigationManager NavigationManager
+
+<style>
+    .game-status {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .play-button, .help-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        padding: 0;
+        font-size: 14px;
+    }
+
+    .attempts, .timer {
+        display: flex;
+        align-items: center;
+    }
+</style>
+
+<div class="game-container">
+    <h1>Guess the secret number</h1>
+
+    <div class="game-status">
+        @* <button class="play-button" @onclick="StartTimer">▶</button> *@
+        <button class="help-button" @onclick="ShowHelp">?</button>
+        <span class="attempts">Attempts left: @GameService.GetGameState().AttemptsLeft</span>
+        @if (GameService.IsTimerRunning)
+        {
+            <span>Time: @GameService.GetFormattedElapsedTime()</span>
+        }
+    </div>
+
+    @if (GameService.GetGameState().IsGameOver)
+    {
+        <div class="game-over">
+            @if (GameService.GetGameState().HasWon)
+            {
+                <h2>Congratulations! You won! 🎉</h2>
+            }
+            else
+            {
+                <h2>Game Over! The number was @GameService.GetGameState().SecretNumber</h2>
+            }
+            <p>Steps taken: @GameService.GetGameState().StepCount</p>
+            <p>Time: @GameService.GetFormattedElapsedTime()</p>
+            <h3>Best Results:</h3>
+            <ul>
+                @foreach (var result in StatisticsService.GetBestResults(5)) // Get top 5 results
+                {
+                    <li>
+                        @($"Date: {result.LocalTime:g}, Steps: {result.Steps}, Time: {result.Time:mm\\:ss}, Result: {(result.HasWon ? "Win" : "Loss")}")
+                    </li>
+                }
+            </ul>
+            <button @onclick="StartNewGame">Play Again</button>
+        </div>
+    }
+    else
+    {
+        <GuessInput OnGuessCallback="OnGuess"/>
+    }
+
+    <GuessList @ref="_guessListComponent" Guesses="GameService.GetGameState().Guesses"/>
+</div>
+
+@code {
+
+    private GuessList _guessListComponent;
+
+    //private bool isTimerRunning;
+
+    protected override void OnInitialized()
+    {
+        GameService.OnTimerTick += UpdateUI;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        if (firstRender)
+        {
+            await StatisticsService.InitializeAsync(); // Load statistics when component initializes}
+        }
+    }
+
+    private void StartNewGame()
+    {
+        GameService.StartNewGame();
+        _guessListComponent.ClearAllOverlays();
+        //isTimerRunning = false;
+    }
+
+    private void ShowHelp()
+    {
+        NavigationManager.NavigateTo("/bulls-and-cows-description");
+    }
+
+    private void OnGuess(string guess)
+    {
+        if (!GameService.IsTimerRunning)
+        {
+            StartTimer();
+        }
+        GameService.MakeGuess(guess);
+        if (GameService.GetGameState().IsGameOver)
+        {
+            //isTimerRunning = false;
+        }
+    }
+
+    private void StartTimer()
+    {
+        if (!GameService.IsTimerRunning)
+        {
+            //isTimerRunning = true;
+            GameService.StartTimer();
+        }
+    }
+
+    private void UpdateUI()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        GameService.StopTimer();
+    }
+
+}

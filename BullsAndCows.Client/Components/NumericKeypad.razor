@@ -1,0 +1,160 @@
+﻿@inject IJSRuntime JsRuntime
+
+<div class="keypad">
+    <div class="display">
+        @for (int i = 0; i < 4; i++)
+        {
+            <span class="digit-box @(i == CurrentInput.Length ? "current" : "")">@(i < CurrentInput.Length ? CurrentInput[i] : "\u00A0")</span>
+        }
+
+    </div>
+
+    <div class="keys">
+        @for (int i = 1; i <= 9; i++)
+        {
+            int closuredI = i;
+            <button @onclick="() => HandleKeyPress(closuredI.ToString())" disabled="@IsButtonDisabled(closuredI.ToString())">@i</button>
+        }
+        <button @onclick="() => HandleKeyPress('0'.ToString())" disabled="@IsButtonDisabled('0'.ToString())">0</button>
+        <button @onclick="HandleDelete" disabled="@(CurrentInput.Length == 0)">⌫</button>
+        <button @onclick="HandleEnter" disabled="@(!IsValidGuess())" class="keys guess-button">Guess</button>
+    </div>
+
+</div>
+
+<style>
+    .keypad {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .display {
+        display: flex;
+        padding: 5px;
+        margin-bottom: 10px;
+        width: 100%;
+        gap: 5px;
+    }
+
+    .digit-box {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #ccc;
+        width: 20px;
+        height: 30px;
+        font-size: 1.5em;
+    }
+
+    .digit-box.current {
+        border: 2px solid #007BFF;
+        background-color: #e9f5ff;
+    }
+
+    .keys {
+        display: grid;
+        grid-template-columns: repeat(4, auto); /* Use auto to allow fixed width */
+        gap: 10px;
+        justify-content: start; /* Left-align the grid */
+    }
+
+    .keys button {
+        width: 60px; /* Set a fixed width for the buttons */
+        padding: 10px;
+        font-size: 1.2em;
+        white-space: nowrap; /* Prevent text from wrapping */
+        overflow: hidden; /* Hide any overflow text */
+        text-overflow: ellipsis; /* Show ellipsis if text overflows */
+    }
+
+    .keys .guess-button {
+        font-size: 0.9em; /* Reduce the font size for the "Guess" button */
+    }
+</style>
+
+@code {
+    [Parameter]
+    public EventCallback<string> OnInput { get; set; }
+
+    private string CurrentInput { get; set; } = string.Empty;
+
+    private HashSet<char> EnteredDigits { get; set; } = new HashSet<char>();
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        // Add event listener for keydown events
+        JsRuntime.InvokeVoidAsync("addKeydownListener", DotNetObjectReference.Create(this));
+    }
+
+    [JSInvokable]
+    public void HandleKeydown(string key)
+    {
+        if (key == "Backspace")
+        {
+            HandleDelete();
+            StateHasChanged();
+        }
+        else if (key == "Enter")
+        {
+            HandleEnter();
+        }
+        else if (char.IsDigit(key[0]) && CurrentInput.Length < 4 && !EnteredDigits.Contains(key[0]))
+        {
+            HandleKeyPress(key);
+            StateHasChanged();
+        }
+    }
+
+    private void HandleKeyPress(string key)
+    {
+        if (CurrentInput.Length < 4 && !EnteredDigits.Contains(key[0]))
+        {
+            CurrentInput += key;
+            EnteredDigits.Add(key[0]);
+            //OnInput.InvokeAsync(CurrentInput);
+        }
+    }
+
+    private void HandleDelete()
+    {
+        if (CurrentInput.Length > 0)
+        {
+            var lastChar = CurrentInput[CurrentInput.Length - 1];
+            EnteredDigits.Remove(lastChar);
+            CurrentInput = CurrentInput.Substring(0, CurrentInput.Length - 1);
+            //OnInput.InvokeAsync(CurrentInput);
+        }
+    }
+
+    private void HandleEnter()
+    {
+        if (IsValidGuess())
+        {
+            OnInput.InvokeAsync(CurrentInput);
+            CurrentInput = string.Empty;
+            EnteredDigits.Clear();
+        }
+    }
+
+    private bool IsValidGuess()
+    {
+        if (CurrentInput.Length != 4)
+        {
+            return false;
+        }
+
+        var digits = new HashSet<char>(CurrentInput);
+        return digits.Count == 4 && CurrentInput[0] != '0';
+    }
+
+    private bool IsButtonDisabled(string key)
+    {
+        if (key == "0" && CurrentInput.Length == 0)
+        {
+            return true;
+        }
+        return EnteredDigits.Contains(key[0]);
+    }
+
+}

@@ -1,0 +1,183 @@
+@using BullsAndCows.Client.Models
+
+<div class="guess-list">
+    <h3>Previous Guesses. 🐂 digit in place,🐄 digit out of place</h3>
+    @if (Guesses == null || !Guesses.Any())
+    {
+        <p>No guesses yet</p>
+    }
+    else
+    {
+        <ul>
+            @foreach (var guess in Guesses.Select((g, index) => new { Guess = g, Index = index + 1 }))
+            {
+                <li>
+                    <span class="step-number">Step @guess.Index</span>
+                    @foreach (var digit in guess.Guess.Value)
+                    {
+                        var localDigit = digit;
+                        <button class="digit-button" @onclick="() => HandleButtonClick(localDigit)">
+                            @localDigit
+                            @if (!string.IsNullOrEmpty(GetOverlay(localDigit)))
+                            {
+                                <span class="overlay @GetOverlayClass(localDigit)">@GetOverlay(localDigit)</span>
+                            }
+                        </button>
+                    }
+                    <span class="bulls">🐂 @guess.Guess.Bulls</span>
+                    <span class="cows">🐄 @guess.Guess.Cows</span>
+                    @if (guess.Guess.IsCorrect)
+                    {
+                        <span class="correct-guess">✔</span>
+                    }
+                </li>
+            }
+        </ul>
+    }
+</div>
+
+<style>
+    .guess-list {
+        margin: 20px 0;
+        background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent background */
+        padding: 20px;
+        border-radius: 8px;
+    }
+
+    ul {
+        list-style: none;
+        padding: 0;
+    }
+
+    li {
+        padding: 5px;
+        margin: 5px 0;
+        background-color: rgba(245, 245, 245, 0.8); /* Semi-transparent background */
+        border-radius: 4px;
+        display: flex;
+        gap: 10px;
+    }
+
+    .step-number {
+        font-family: 'Roboto Mono', monospace;
+        font-size: 1.0em;
+        font-weight: bold;
+        color: #333;
+        width: 70px; /* Fixed width for step number */
+        /*text-align: right; /* Align text to the right */
+    }
+
+    .digit-button {
+        width: 40px;
+        height: 30px;
+        font-size: 1.2em;
+        font-weight: bold;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+
+    .digit-button .overlay {
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        font-size: 0.6em;
+    }
+
+
+    .overlay.x {
+        color: red;
+    }
+
+    .overlay.question {
+        color: blue;
+    }
+
+    .overlay.check {
+        color: green;
+    }
+
+    .overlay.other {
+        color: brown;
+    }
+
+    .bulls, .cows {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .correct-guess {
+        font-size: 1.5em;
+        color: green;
+    }
+</style>
+
+@code {
+    // Input parameter for the guesses
+    [Parameter]
+    public List<Guess>? Guesses { get; set; } = new();
+
+    private Dictionary<char, int> digitClicks = new();
+
+    private string[] overlays = { "x", "?", "✔", "1", "2", "3", "4" };
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        // Initialize the dictionary with default values
+        foreach (var guess in Guesses)
+        {
+            foreach (var digit in guess.Value)
+            {
+                if (!digitClicks.ContainsKey(digit))
+                {
+                    digitClicks[digit] = 0;
+                }
+            }
+        }
+    }
+
+    public void ClearAllOverlays()
+    {
+        digitClicks.Clear();
+        StateHasChanged();
+    }
+
+    private void HandleButtonClick(char digit)
+    {
+        if (digitClicks.ContainsKey(digit))
+        {
+            digitClicks[digit] = (digitClicks[digit] + 1) % (overlays.Length + 1);
+        }
+        else
+        {
+            digitClicks[digit] = 1;
+        }
+    }
+
+    private string GetOverlay(char digit)
+    {
+        if (digitClicks.ContainsKey(digit) && digitClicks[digit] > 0)
+        {
+            return overlays[digitClicks[digit] - 1];
+        }
+        return string.Empty;
+    }
+
+    private string GetOverlayClass(char digit)
+    {
+        string overlay = GetOverlay(digit);
+        return overlay switch
+            {
+                "x" => "x",
+                "?" => "question",
+                "✔" => "check",
+                _ => "other"
+            };
+    }
+
+
+}

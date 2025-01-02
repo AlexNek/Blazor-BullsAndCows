@@ -1,0 +1,71 @@
+﻿@using BullsAndCows.Client.Services
+@inherits LayoutComponentBase
+@inject IStatisticsService StatisticsService
+
+<div class="page">
+   @*  <div class="sidebar">
+        <NavMenu/>
+    </div> *@
+
+    <main>
+        <div class="top-row px-4">
+            <div class="left-aligned-container">Classic Bulls and Cows game</div>
+            <div class="left-aligned-container">
+                
+                @if (StatisticsService.GetBestResults(1) is var bestResults && bestResults.Any())
+                {
+                    var bestResult = bestResults.First(); // Get the first result
+                    <span>
+                      @($" | Best Result - Date: {bestResult.LocalTime:g}, Steps: {bestResult.Steps}, Time: {bestResult.Time:mm\\:ss}, Result: {(bestResult.HasWon ? "Win" : "Loss")} | ")
+                    </span>
+                }
+                else
+                {
+                    <span>No results available</span>
+                }
+            </div>
+           @*  <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a> *@
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await StatisticsService.InitializeAsync(); // Load statistics when component initializes
+
+        // Subscribe to the statistics changed event
+        StatisticsService.OnStatisticsChanged += UpdateStatistics;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        if (firstRender)
+        {
+            await StatisticsService.InitializeAsync(); // Load statistics when component initializes
+            //StateHasChanged();
+        }
+    }
+
+    private void UpdateStatistics()
+    {
+        StateHasChanged(); // Request a re-render to update the UI
+    }
+
+    public void Dispose()
+    {
+        // Unsubscribe from the event when the component is disposed
+        StatisticsService.OnStatisticsChanged -= UpdateStatistics;
+    }
+}
